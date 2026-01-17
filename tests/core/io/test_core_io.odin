@@ -276,7 +276,7 @@ _test_stream :: proc(
 				x_buf[0] = 0
 				bytes_read, read_err := io.read_at(stream, x_buf[:], 0)
 				testing.expectf(t, i64(bytes_read) == 1 && read_err == nil,
-					"Write_At(0)+Read_At(0) failed expectation: bytes_read<%v> != 1, %q != 'Z', %v", bytes_read, x_buf[0], read_err, loc = loc) or_return
+					"Write_At(0)+Read_At(0) failed expectation: bytes_read<%v> != 1, %q != 'Z', %v", bytes_read, x_buf, read_err, loc = loc) or_return
 			}
 		}
 

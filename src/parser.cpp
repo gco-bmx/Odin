@@ -4712,6 +4712,7 @@ gb_global ParseFieldPrefixMapping const parse_field_prefix_mappings[] = {
 	{str_lit("subtype"),      Token_Hash,      FieldFlag_subtype},
 	{str_lit("by_ptr"),       Token_Hash,      FieldFlag_by_ptr},
 	{str_lit("no_broadcast"), Token_Hash,      FieldFlag_no_broadcast},
+	{str_lit("fmt_str"),      Token_Hash,      FieldFlag_fmt_str},
 };
 
 

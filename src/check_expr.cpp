@@ -6739,6 +6739,436 @@ gb_internal isize lookup_procedure_parameter(Type *type, String const &parameter
 	return lookup_procedure_parameter(&type->Proc, parameter_name);
 }
 
+gb_internal isize is_printf_like_procedure(TypeProc *pt) {
+	if(!pt->variadic) { return -1; }
+	if(pt->node==nullptr){ return -1; }
+	if(pt->node->kind != Ast_ProcType){ return -1; }
+	if(pt->node->ProcType.params->kind != Ast_FieldList){ return -1; }
+
+	isize len = pt->node->ProcType.params->FieldList.list.count;
+	for(isize i=0; i < len; i++){
+		if(pt->node->ProcType.params->FieldList.list[i]->kind != Ast_Field){ continue; }
+		if(pt->node->ProcType.params->FieldList.list[i]->Field.flags & FieldFlag_fmt_str){
+			return i;
+		}
+	}
+	return -1;
+}
+
+enum FormatError : u8 {
+	FormatError_None,
+	FormatError_bad_width_argument_number,
+	FormatError_missing_closing_brace,
+	FormatError_bad_precision,
+	FormatError_bad_precision_argument_number,
+	FormatError_bad_argument_number,
+	FormatError_missing_verb,
+};
+
+struct FormatOptions {
+	u64 width;
+	u64 precision;
+	u64 arg_num;
+	char verb;
+	bool plus=false;
+	bool minus=false;
+	bool zero=false;
+	bool space=false;
+	bool hash=false;
+	bool width_set=false;
+	bool width_arg_num=false;
+	bool precision_set=false;
+	bool precision_arg_num=false;
+	bool arg_num_set=false;
+	FormatError err=FormatError_None;
+};
+
+gb_internal bool parse_int(String const &s, isize *offset_, u64 *result_) {
+	isize offset = *offset_;
+	isize new_offset = *offset_;
+
+	u64 result = 0;
+
+	while (new_offset < s.len) {
+		u8 c = s[new_offset];
+		if (!('0' <= c && c <= '9')) {
+			break;
+		}
+
+		new_offset += 1;
+		result *= 10;
+		result += u64(c)-'0';
+	}
+
+	*offset_ = new_offset;
+	*result_ = result;
+	return new_offset > offset;
+};
+
+gb_internal FormatOptions parse_format_options(isize& i, String const &fmt, bool python_style, u64 &used) {
+	//[FLAGS] [WIDTH][.PRECISION] [[N]] VERB
+	// WIDTH     ::= * | *[n] |  0-9s
+	// PRECISION ::= * | *[n] |  0-9
+	// ['+' '-' '#'  ' ' '0']
+	u64 n=0;
+	FormatOptions ops{0};
+	for( ; i < fmt.len; i++) {
+		switch (fmt[i]) {
+			case '+': ops.plus =true; continue;
+			case '-': ops.minus=true; continue;
+			case ' ': ops.space=true; continue;
+			case '#': ops.hash =true; continue;
+			case '0': ops.zero =true; continue;
+			default: break;
+		}
+		break;
+	}
+
+	if(fmt[i]=='*'){
+		i++;
+		if(i >= fmt.len) { 
+			ops.err = FormatError_bad_width_argument_number;
+			return ops;
+		}
+		if(fmt[i] == '[') {
+			i++;
+			ops.width_arg_num = parse_int(fmt, &i, &ops.width);
+			if(!ops.width_arg_num){
+				ops.err = FormatError_bad_width_argument_number;
+				return ops;
+			}
+			used |= 1 << ops.width;
+			if(i >= fmt.len || fmt[i]!=']') { 
+				ops.err =FormatError_missing_closing_brace;
+				return ops;
+			}
+			i++;
+		}
+		else {
+			ops.width_arg_num=true; 
+			while(used & (1 << n)) { n++; }
+			used |= 1 << n;
+			ops.width = n;
+		}
+	} else {
+		ops.width_set = parse_int(fmt, &i, &ops.width);
+	}
+
+	if(i < fmt.len && fmt[i]=='.'){
+		i++;
+		if(i < fmt.len && fmt[i]=='*'){
+			i++;
+			if(i >= fmt.len) { 
+				ops.err = FormatError_bad_precision_argument_number;
+				return ops;
+			}
+			if(fmt[i] == '[') {
+				i++;
+				ops.precision_arg_num = parse_int(fmt, &i, &ops.precision);
+				if(!ops.precision_arg_num) {
+					ops.err = FormatError_bad_precision_argument_number;
+					return ops;
+				}
+				used |= 1 << ops.precision;
+				if(i >= fmt.len || fmt[i]!=']') { 
+					ops.err =FormatError_missing_closing_brace;
+					return ops; 
+				}
+				i++;
+			} else {
+				ops.precision_arg_num=true; 
+				while(used & (1 << n)) { n++; }
+				used |= 1 << n;
+				ops.precision = n;
+			}
+		} else {
+			ops.precision_set = parse_int(fmt, &i, &ops.precision);
+			if(!ops.precision_set){
+				ops.err = FormatError_bad_precision;
+				return ops;
+			}
+		}
+	}
+
+	if (!python_style) {
+		if(fmt[i]=='['){
+			i++;
+			ops.arg_num_set = parse_int(fmt, &i, &ops.arg_num);
+			if(!ops.arg_num_set) {
+				ops.err = FormatError_bad_argument_number;
+				return ops;
+			}
+			used |= 1 << ops.arg_num;
+			if(i >= fmt.len || fmt[i]!=']') { 
+				ops.err =FormatError_missing_closing_brace;
+				return ops; 
+			}
+			i++;
+		} else {
+			ops.arg_num_set=true; 
+			while(used & (1 << n)) { n++; }
+			used |= 1 << n;
+			ops.arg_num = n;
+		}
+	}
+
+	//is verb
+	if(fmt[i]=='t'){ //boolean
+		ops.verb = fmt[i];
+	} else if( //integer
+		fmt[i]=='b' ||
+		fmt[i]=='c' ||
+		fmt[i]=='r' ||
+		fmt[i]=='o' ||
+		fmt[i]=='d' ||
+		fmt[i]=='i' ||
+		fmt[i]=='z' ||
+		fmt[i]=='x' ||
+		fmt[i]=='X' ||
+		fmt[i]=='U' ||
+		fmt[i]=='m' ||
+		fmt[i]=='M'){
+		ops.verb = fmt[i];
+	} else if( //float
+		fmt[i]=='e' ||
+		fmt[i]=='E' ||
+		fmt[i]=='f' ||
+		fmt[i]=='F' ||
+		fmt[i]=='g' ||
+		fmt[i]=='G' ||
+		fmt[i]=='h' ||
+		fmt[i]=='H'){
+		ops.verb = fmt[i];
+	} else if( //slice
+		fmt[i]=='s' || //slice or enum
+		fmt[i]=='q' ||
+		fmt[i]=='x' ||
+		fmt[i]=='X'){
+		ops.verb = fmt[i];
+	} else if( fmt[i]=='p'){ //pointer 
+		ops.verb = fmt[i];
+	} else if( fmt[i]=='v' || fmt[i]=='w' || fmt[i]=='T' ){ //any
+		ops.verb = fmt[i];
+	} else {
+		ops.err =FormatError_missing_verb;
+		return ops; 
+	}
+	return ops;
+}
+
+gb_internal bool format_verb_compatible_with_type(char v, Type *type){
+	if( v=='v' || v=='w' || v=='T' ){ //any
+		return true;
+	}
+
+	if(is_type_boolean(type)){
+		return v=='t'; 
+	}
+	if(is_type_integer(type)){
+		return (
+			v=='b' ||
+			v=='c' ||
+			v=='r' ||
+			v=='o' ||
+			v=='d' ||
+			v=='i' ||
+			v=='z' ||
+			v=='x' ||
+			v=='X' ||
+			v=='U' ||
+			v=='m' ||
+			v=='M'
+		);
+	}
+	if(is_type_enum(type) || (is_type_union(type) && base_type(type)->Union.kind == UnionType_shared_nil)){
+		return (
+			v=='s' ||
+			v=='i' ||
+			v=='d' ||
+			v=='f'
+		);
+	}
+	if(is_type_float(type) || is_type_complex(type) || is_type_quaternion(type)){
+		return (
+			v=='e' ||
+			v=='E' ||
+			v=='f' ||
+			v=='F' ||
+			v=='g' ||
+			v=='G' ||
+			v=='h' ||
+			v=='H'
+		);
+	}
+	if(is_type_pointer(type)){
+		return (
+			v=='p' ||
+			v=='b' ||
+			v=='d' ||
+			v=='o' ||
+			v=='z' ||
+			v=='x' ||
+			v=='X'
+		);
+	}
+	if(is_type_string(type)){
+		return (
+			v=='s' ||
+			v=='q' ||
+			v=='x' ||
+			v=='X'
+		);
+	}
+	if(is_type_slice(type) || is_type_array(type)){
+		if (
+			v=='p' ||
+			v=='s' ||
+			v=='q' ||
+			v=='x' ||
+			v=='X'){ 
+			return true;
+		}
+		Type *elem = nullptr;
+		Type *bt = base_type(type);
+		if (bt->kind == Type_Slice) {
+			elem = bt->Slice.elem;
+		} else if (bt->kind == Type_Array) {
+			elem = bt->Array.elem;
+		} else if (bt->kind == Type_EnumeratedArray) {
+			elem = bt->EnumeratedArray.elem;
+		}
+		GB_ASSERT(elem != nullptr);
+		return format_verb_compatible_with_type(v, elem);
+	}
+	if(is_type_dynamic_array(type) || is_type_slice(type)) { 
+		return v=='p';
+	}
+
+	if(is_type_union(type)){
+		Type *bt = base_type(type);
+		for (Type *vt : bt->Union.variants) {
+			if (!format_verb_compatible_with_type(v, vt)) {
+				return false;
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
+gb_internal void check_format_string(Operand *fmt_operand, Slice<Operand> variadic_operands) {
+	if(fmt_operand->type->kind != Type_Basic || fmt_operand->type->Basic.kind != Basic_string){ return; }
+	if(fmt_operand->value.kind != ExactValue_String){ return ; }
+
+	if(variadic_operands.count >= 64) { 
+		error(fmt_operand->expr, "to many arguments, is limited to 64 arguments");
+		return;
+	}
+	
+	String& fmt = fmt_operand->value.value_string;
+	isize n=0;
+	u64 used=0;
+	for(isize i=0; i< fmt.len; i++) {
+		if (fmt[i] == '%' && i+1 < fmt.len && fmt[i+1]=='%') { i++; continue; }
+		if (fmt[i] == '{' && i+1 < fmt.len && fmt[i+1]=='{') { i++; continue; }
+		if (fmt[i] != '%' && fmt[i]!= '{') { continue; }
+
+		FormatOptions ops{};
+		if (fmt[i] == '%') {
+			i++;
+			// % [FLAGS] [WIDTH][.PRECISION] [[N]] VERB
+			ops = parse_format_options(i, fmt, false, used);
+		} else if (fmt[i] == '{') {
+			i++;
+			// { [N]: [FLAGS] [WIDTH][.PRECISION] VERB }
+			u64 arg_num;
+			bool arg_num_set = parse_int(fmt, &i, &arg_num);
+			if(arg_num_set){
+				used |= (1 << arg_num);
+			} else {
+				while(used & (1 << n)) { n++; }
+				used |= 1 << n;
+				arg_num = n;
+				arg_num_set=true; 
+			}
+			if (i < fmt.len && fmt[i]== ':'){
+				i++;
+				ops = parse_format_options(i, fmt, true, used);
+				i++; //parse_format_options returns on verb
+			} else {
+				ops.verb = 'v'; //assume {} is %v
+			}
+			ops.arg_num_set=arg_num_set;
+			ops.arg_num = arg_num;
+
+			if (i >= fmt.len || fmt[i]!= '}'){
+				error(fmt_operand->expr, "format string missing close brace");
+				return;
+			}
+		}
+
+		if(ops.err != FormatError_None){
+			String t;
+			switch (ops.err) {	
+				case FormatError_bad_width_argument_number:      
+					t = str_lit("bad width argument number"); break;
+				case FormatError_missing_closing_brace:          
+					t = str_lit("missing closing brace"); break;
+				case FormatError_bad_precision_argument_number:
+					t = str_lit("bad precision argument number"); break;
+				case FormatError_bad_precision:
+					t = str_lit("bad precision"); break;
+				case FormatError_bad_argument_number:	
+					t = str_lit("bad argument number"); break;
+				case FormatError_missing_verb:
+					t = str_lit("missing verb"); break;
+				default: break;
+			}
+			error(fmt_operand->expr, "format string %.*s", LIT(t));
+			return;
+		}
+
+		if(ops.width_arg_num){
+			if(ops.width >= variadic_operands.count){
+				error(fmt_operand->expr, "format string references argument %i that doesn't exist", ops.width);
+				return;
+			}
+			
+			if (!is_type_numeric(default_type(variadic_operands[ops.width].type))) {
+				error(fmt_operand->expr, "format string %i argument is not numeric", ops.width);
+				return;
+			}
+		}
+		if(ops.precision_arg_num){
+			if(ops.precision >= variadic_operands.count){
+				error(fmt_operand->expr, "format string references argument %i that doesn't exist", ops.precision);
+				return;
+			}
+			
+			if (!is_type_numeric(default_type(variadic_operands[ops.precision].type))) {
+				error(fmt_operand->expr, "format string %i argument is not numeric", ops.precision);
+				return;
+			}
+		}
+		GB_ASSERT(ops.arg_num_set);
+		if(ops.arg_num >= variadic_operands.count){
+			error(fmt_operand->expr, "format string references argument %i that doesn't exist", ops.arg_num);
+			return;
+		}
+
+		if(!format_verb_compatible_with_type(ops.verb, default_type(variadic_operands[ops.arg_num].type))){
+			gbString str = type_to_string(default_type(variadic_operands[ops.precision].type));
+			error(fmt_operand->expr, "format string verb %c not compatible with %s type", ops.verb, str);
+			gb_string_free(str);
+		}
+	}
+
+	if(__builtin_popcount(used) < variadic_operands.count ) {
+		error(fmt_operand->expr, "format string uses %i arguments, but %i supplied", __builtin_popcount(used), variadic_operands.count);
+	}
+}
+
+
 gb_internal CallArgumentError check_call_arguments_internal(CheckerContext *c, Ast *call,
 	Entity *entity, Type *proc_type,
 	Array<Operand> positional_operands, Array<Operand> const &named_operands,
@@ -7188,6 +7618,15 @@ gb_internal CallArgumentError check_call_arguments_internal(CheckerContext *c, A
 		}
 		if (proc_lit == nullptr) {
 			add_type_and_value(c, ce->proc, Addressing_Value, final_proc_type, {});
+		}
+	}
+
+	//validate printf like format strings
+	if (err == CallArgumentError_None && entity && entity->pkg) {
+		isize fmt_idx = is_printf_like_procedure(pt);
+		if (fmt_idx >= 0) {
+			Operand *fmt_operand = &ordered_operands[fmt_idx];
+			check_format_string(fmt_operand, variadic_operands);
 		}
 	}
 

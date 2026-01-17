@@ -79,22 +79,22 @@ test_timestamps :: proc(t: ^testing.T) {
 
 	testing.expectf(t,
 		time.diff(max_time_hns_resolution, v1_time) == 0,
-		"v1 UUID timestamp is invalid, expected %x, got %x",
+		"v1 UUID timestamp is invalid, expected %v, got %v",
 		max_time_hns_resolution, v1_time)
 
 	testing.expectf(t,
 		time.diff(max_time_hns_resolution, v6_time) == 0,
-		"v6 UUID timestamp is invalid, expected %x, got %x",
+		"v6 UUID timestamp is invalid, expected %v, got %v",
 		max_time_hns_resolution, v6_time)
 
 	testing.expectf(t,
 		time.diff(max_time_ms_resolution, v7_time) == 0,
-		"v7 UUID timestamp is invalid, expected %x, got %x",
+		"v7 UUID timestamp is invalid, expected %v, got %v",
 		max_time_ms_resolution, v7_time)
 
 	testing.expectf(t,
 		time.diff(max_time_ms_resolution, v7_counter_time) == 0,
-		"v7 UUID (with counter) timestamp is invalid, expected %x, got %x",
+		"v7 UUID (with counter) timestamp is invalid, expected %v, got %v",
 		max_time_ms_resolution, v7_counter_time)
 }
 
