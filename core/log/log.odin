@@ -157,7 +157,7 @@ Inputs:
 - `args`: Arguments for the format string
 - `location`: Location of the caller (default is #caller_location)
 */
-debugf :: proc(fmt_str: string, args: ..any, location := #caller_location) {
+debugf :: proc(#fmt_str fmt_str: string, args: ..any, location := #caller_location) {
 	logf(.Debug,   fmt_str, ..args, location=location)
 }
 
@@ -169,7 +169,7 @@ Inputs:
 - `args`: Arguments for the format string
 - `location`: Location of the caller (default is #caller_location)
 */
-infof  :: proc(fmt_str: string, args: ..any, location := #caller_location) {
+infof  :: proc(#fmt_str fmt_str: string, args: ..any, location := #caller_location) {
 	logf(.Info,    fmt_str, ..args, location=location)
 }
 
@@ -181,7 +181,7 @@ Inputs:
 - `args`: Arguments for the format string
 - `location`: Location of the caller (default is #caller_location)
 */
-warnf  :: proc(fmt_str: string, args: ..any, location := #caller_location) {
+warnf  :: proc(#fmt_str fmt_str: string, args: ..any, location := #caller_location) {
 	logf(.Warning, fmt_str, ..args, location=location)
 }
 
@@ -193,7 +193,7 @@ Inputs:
 - `args`: Arguments for the format string
 - `location`: Location of the caller (default is #caller_location)
 */
-errorf :: proc(fmt_str: string, args: ..any, location := #caller_location) {
+errorf :: proc(#fmt_str fmt_str: string, args: ..any, location := #caller_location) {
 	logf(.Error,   fmt_str, ..args, location=location)
 }
 
@@ -205,7 +205,7 @@ Inputs:
 - `args`: Arguments for the format string
 - `location`: Location of the caller (default is #caller_location)
 */
-fatalf :: proc(fmt_str: string, args: ..any, location := #caller_location) {
+fatalf :: proc(#fmt_str fmt_str: string, args: ..any, location := #caller_location) {
 	logf(.Fatal,   fmt_str, ..args, location=location)
 }
 
@@ -289,7 +289,7 @@ Inputs:
 - `args`: Arguments for the format string
 - `location`: Location of the caller (default is #caller_location)
 */
-panicf :: proc(fmt_str: string, args: ..any, location := #caller_location) -> ! {
+panicf :: proc(#fmt_str fmt_str: string, args: ..any, location := #caller_location) -> ! {
 	logf(.Fatal, fmt_str, ..args, location=location)
 	runtime.panic("log.panicf", location)
 }
@@ -332,7 +332,7 @@ Inputs:
 - `loc`: Location of the caller (default is #caller_location)
 */
 @(disabled=ODIN_DISABLE_ASSERT)
-assertf :: proc(condition: bool, fmt_str: string, args: ..any, loc := #caller_location) {
+assertf :: proc(condition: bool, #fmt_str fmt_str: string, args: ..any, loc := #caller_location) {
 	if !condition {
 		// NOTE(dragos): We are using the same trick as in builtin.assert
 		// to improve performance to make the CPU not
@@ -388,7 +388,7 @@ Inputs:
 - `args`: Arguments for the format string
 - `loc`: Location of the caller (default is #caller_location)
 */
-ensuref :: proc(condition: bool, fmt_str: string, args: ..any, loc := #caller_location) {
+ensuref :: proc(condition: bool, #fmt_str fmt_str: string, args: ..any, loc := #caller_location) {
 	if !condition {
 		@(cold)
 		internal :: proc(loc: runtime.Source_Code_Location, fmt_str: string, args: ..any) {

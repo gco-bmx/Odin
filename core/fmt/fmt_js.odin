@@ -51,7 +51,7 @@ fprintln :: proc(f: any, args: ..any, sep := " ", flush := true, loc := #caller_
 
 // fprintf formats according to the specified format string and writes to fd
 // flush is ignored
-fprintf :: proc(f: any, fmt: string, args: ..any, flush := true, newline := false, loc := #caller_location) -> (n: int) {
+fprintf :: proc(f: any, #fmt_str fmt: string, args: ..any, flush := true, newline := false, loc := #caller_location) -> (n: int) {
 	fd := get_fd(f)
 	s := bprintf(buf[:], fmt, ..args, newline=newline)
 	n = len(s)
