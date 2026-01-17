@@ -162,9 +162,9 @@ test_write :: proc(t: ^testing.T) {
 
 		switch n1_t in n1_content.image_stack[i].data {
 		case []u8:
-			testing.expectf(t, false, fmt.tprintf("n1_content.image_stack[i].data []u8", #procedure))
+			testing.expectf(t, false, fmt.tprint("n1_content.image_stack[i].data []u8", #procedure))
 		case []i32le:
-			testing.expectf(t, false, fmt.tprintf("n1_content.image_stack[i].data []i32le", #procedure))
+			testing.expectf(t, false, fmt.tprint("n1_content.image_stack[i].data []i32le", #procedure))
 		case []f32le:
 			l, l_ok := v.image_stack[i].data.([]f32le)
 			testing.expectf(t, l_ok, fmt.tprintf("l_ok %v != %v", l_ok, true))

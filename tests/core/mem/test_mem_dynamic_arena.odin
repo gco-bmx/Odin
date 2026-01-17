@@ -57,6 +57,7 @@ expect_arena_allocation_out_of_band :: proc(t: ^testing.T, num_bytes, block_size
 	testing.expect(t, element != nil)
 	testing.expectf(t, arena.out_band_allocations != nil,
 		"Allocated data with size %v bytes, which is >= out_of_band_size and it should be in arena.out_band_allocations, but isn't!",
+		num_bytes,
 	)
 
 	mem.dynamic_arena_destroy(&arena)

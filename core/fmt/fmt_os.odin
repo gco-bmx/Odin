@@ -32,7 +32,7 @@ fprintln :: proc(f: ^os.File, args: ..any, sep := " ", flush := true) -> (bytes_
 }
 
 // Formats according to the specified format string and writes to ^os.File.
-fprintf :: proc(f: ^os.File, fmt: string, args: ..any, flush := true, newline := false) -> (bytes_written: int) {
+fprintf :: proc(f: ^os.File, #fmt_str fmt: string, args: ..any, flush := true, newline := false) -> (bytes_written: int) {
 	buf: [1024]byte
 	b: bufio.Writer
 
@@ -43,7 +43,7 @@ fprintf :: proc(f: ^os.File, fmt: string, args: ..any, flush := true, newline :=
 }
 
 // Formats according to the specified format string and writes to ^os.File, followed by a newline.
-fprintfln :: proc(f: ^os.File, fmt: string, args: ..any, flush := true) -> (bytes_written: int) {
+fprintfln :: proc(f: ^os.File, #fmt_str fmt: string, args: ..any, flush := true) -> (bytes_written: int) {
 	return fprintf(f, fmt, ..args, flush=flush, newline=true)
 }
 
@@ -76,10 +76,10 @@ print     :: proc(args: ..any, sep := " ",  flush := true) -> (bytes_written: in
 println   :: proc(args: ..any, sep := " ",  flush := true) -> (bytes_written: int) { return fprintln(os.stdout, ..args, sep=sep, flush=flush) }
 
 // Formats according to the specified format string and writes to os.stdout.
-printf    :: proc(fmt: string, args: ..any, flush := true) -> (bytes_written: int) { return fprintf(os.stdout, fmt, ..args, flush=flush) }
+printf    :: proc(#fmt_str fmt: string, args: ..any, flush := true) -> (bytes_written: int) { return fprintf(os.stdout, fmt, ..args, flush=flush) }
 
 // Formats according to the specified format string and writes to os.stdout, followed by a newline.
-printfln  :: proc(fmt: string, args: ..any, flush := true) -> (bytes_written: int) { return fprintf(os.stdout, fmt, ..args, flush=flush, newline=true) }
+printfln  :: proc(#fmt_str fmt: string, args: ..any, flush := true) -> (bytes_written: int) { return fprintf(os.stdout, fmt, ..args, flush=flush, newline=true) }
 
 // Formats using the default print settings and writes to os.stderr.
 eprint    :: proc(args: ..any, sep := " ",  flush := true) -> (bytes_written: int) { return fprint(os.stderr, ..args, sep=sep, flush=flush) }
@@ -88,7 +88,7 @@ eprint    :: proc(args: ..any, sep := " ",  flush := true) -> (bytes_written: in
 eprintln  :: proc(args: ..any, sep := " ",  flush := true) -> (bytes_written: int) { return fprintln(os.stderr, ..args, sep=sep, flush=flush) }
 
 // Formats according to the specified format string and writes to os.stderr.
-eprintf   :: proc(fmt: string, args: ..any, flush := true) -> (bytes_written: int) { return fprintf(os.stderr, fmt, ..args, flush=flush) }
+eprintf   :: proc(#fmt_str fmt: string, args: ..any, flush := true) -> (bytes_written: int) { return fprintf(os.stderr, fmt, ..args, flush=flush) }
 
 // Formats according to the specified format string and writes to os.stderr, followed by a newline.
-eprintfln :: proc(fmt: string, args: ..any, flush := true) -> (bytes_written: int) { return fprintf(os.stderr, fmt, ..args, flush=flush, newline=true) }
+eprintfln :: proc(#fmt_str fmt: string, args: ..any, flush := true) -> (bytes_written: int) { return fprintf(os.stderr, fmt, ..args, flush=flush, newline=true) }

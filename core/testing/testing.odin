@@ -118,7 +118,7 @@ expect :: proc(t: ^T, ok: bool, msg := "", expr := #caller_expression(ok), loc :
 	return ok
 }
 
-expectf :: proc(t: ^T, ok: bool, format: string, args: ..any, loc := #caller_location) -> bool {
+expectf :: proc(t: ^T, ok: bool, #fmt_str format: string, args: ..any, loc := #caller_location) -> bool {
 	if !ok {
 		log.errorf(format, ..args, location=loc)
 	}

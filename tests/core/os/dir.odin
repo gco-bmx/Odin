@@ -110,7 +110,7 @@ test_walker_internal :: proc(t: ^testing.T, w: ^os.Walker) {
 				delete(entry.path)
 			}
 		}
-		testing.expectf(t, found, "%q not found in %v", expectation, seen)
+		testing.expectf(t, found, "%v not found in %v", expectation, seen)
 		delete(expectation.path)
 	}
 } 

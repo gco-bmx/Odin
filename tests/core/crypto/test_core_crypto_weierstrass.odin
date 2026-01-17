@@ -550,7 +550,7 @@ test_p256_scalar_mul :: proc(t: ^testing.T) {
 
 		k_big: big.Int
 		err := big.set(&k_big, v.scalar, 10, context.temp_allocator)
-		testing.expectf(t, err == nil, "failed to parse k", err)
+		testing.expectf(t, err == nil, "failed to parse k %v", err)
 
 		k_sz: int
 		k_sz, err = big.int_to_bytes_size(&k_big, allocator = context.temp_allocator)
@@ -853,7 +853,7 @@ test_p384_scalar_mul :: proc(t: ^testing.T) {
 
 		k_big: big.Int
 		err := big.set(&k_big, v.scalar, 10, context.temp_allocator)
-		testing.expectf(t, err == nil, "failed to parse k", err)
+		testing.expectf(t, err == nil, "failed to parse k %v", err)
 
 		k_sz: int
 		k_sz, err = big.int_to_bytes_size(&k_big, allocator = context.temp_allocator)

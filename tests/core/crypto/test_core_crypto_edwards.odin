@@ -310,7 +310,7 @@ test_ristretto255 :: proc(t: ^testing.T) {
 		testing.expectf(
 			t,
 			ge_check == v.output,
-			"Expected %s for %s, got %s",
+			"Expected %s, got %s",
 			v.output,
 			ge_check,
 		)

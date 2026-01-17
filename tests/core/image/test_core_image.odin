@@ -1823,7 +1823,7 @@ run_png_suite :: proc(t: ^testing.T, suite: []Test) {
 								if file.file == "exif2c08" { // chunk with jpeg exif data
 									exif, exif_ok := png.exif(c)
 									testing.expectf(t, exif.byte_order == .big_endian && exif_ok, "%v test %v eXIf byte order '%v', expected 'big_endian'.", file.file, count, exif.byte_order)
-									testing.expectf(t, len(exif.data)  == 978         && exif_ok, "%v test %v eXIf data length '%v', expected '%v'", file.file, len(exif.data), 978)
+									testing.expectf(t, len(exif.data)  == 978         && exif_ok, "%v test %v eXIf data length '%v', expected '%v'", file.file, count, len(exif.data), 978)
 								}
 							}
 						}

@@ -329,6 +329,7 @@ test_ed25519 :: proc(t: ^testing.T) {
 			ok,
 			"Expected %s to be a valid public key (priv->pub: %s)",
 			v.pub_key,
+			v.priv_key
 		)
 
 		ed25519.public_key_bytes(&pub_key, key_bytes[:])

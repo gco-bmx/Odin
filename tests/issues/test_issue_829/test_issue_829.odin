@@ -14,5 +14,5 @@ env : map[string]proc(a, b : int) -> int = {
 @(test)
 test_orig_ret :: proc(t: ^testing.T) {
 	r := env["+"](1, 2)
-	testing.expectf(t, r == 3, "%q != 3", r)
+	testing.expectf(t, r == 3, "%i != 3", r)
 }

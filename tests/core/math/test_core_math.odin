@@ -140,11 +140,11 @@ test_trunc_f16 :: proc(t: ^testing.T) {
 
 	v = math.SNAN_F16
 	r = math.trunc_f16(v)
-	testing.expectf(t, math.is_nan_f16(r), "%f != NaN", v, r)
+	testing.expectf(t, math.is_nan_f16(r), "%f != NaN", v)
 
 	v = math.QNAN_F16
 	r = math.trunc_f16(v)
-	testing.expectf(t, math.is_nan_f16(r), "%f != NaN", v, r)
+	testing.expectf(t, math.is_nan_f16(r), "%f != NaN", v)
 }
 
 @test
@@ -374,7 +374,7 @@ test_round_f32 :: proc(t: ^testing.T) {
 	for d, i in data {
 		assert(i == d.i)
 		r = math.round_f32(d.v)
-		testing.expectf(t, r == d.e, "%h -> %h != %h", i, d.v, r, d.e)
+		testing.expectf(t, r == d.e, "%i - %h -> %h != %h", i, d.v, r, d.e)
 	}
 
 	v = math.SNAN_F32

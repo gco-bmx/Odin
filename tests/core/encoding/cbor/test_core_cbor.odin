@@ -281,13 +281,17 @@ test_marshalling :: proc(t: ^testing.T) {
 		s_equals, s_err := big.equals(&backf.smallest, &f.smallest)
 		testing.expect_value(t, s_err, nil)
 		if !s_equals {
-			testing.expectf(t, false, "smallest: %v does not equal %v", big.itoa(&backf.smallest), big.itoa(&f.smallest))
+			b, _ := big.itoa(&backf.smallest) 
+			f, _ := big.itoa(&f.smallest)
+			testing.expectf(t, false, "smallest: %v does not equal %v", b, f)
 		}
 
 		b_equals, b_err := big.equals(&backf.biggest, &f.biggest)
 		testing.expect_value(t, b_err, nil)
 		if !b_equals {
-			testing.expectf(t, false, "biggest: %v does not equal %v", big.itoa(&backf.biggest), big.itoa(&f.biggest))
+			b, _ := big.itoa(&backf.biggest) 
+			f, _ := big.itoa(&f.biggest)
+			testing.expectf(t, false, "biggest: %v does not equal %v", b, f)
 		}
 	}
 }
@@ -861,7 +865,7 @@ expect_tag :: proc(t: ^testing.T, encoded: string, nr: cbor.Tag_Number, value_de
 
 		testing.expect_value(t, str, value_decoded, loc)
 	} else {
-		testing.expectf(t, false, "Value %#v is not a tag", res, loc)
+		testing.expectf(t, false, "Value %#v is not a tag", res, loc=loc)
 	}
 }
 

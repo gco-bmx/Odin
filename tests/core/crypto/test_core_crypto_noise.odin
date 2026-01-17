@@ -185,10 +185,10 @@ test_noise_one_protocol :: proc(t: ^testing.T, protocol: ^Test_Protocol, allocat
 	}
 
 	ini_cs, res_cs: noise.Cipher_States
-	if !testing.expectf(t, .Ok == noise.handshake_split(&ini_hs, &ini_cs), "failed to split initiator: %v") {
+	if !testing.expectf(t, .Ok == noise.handshake_split(&ini_hs, &ini_cs), "failed to split initiator") {
 		return false
 	}
-	if !testing.expectf(t, .Ok == noise.handshake_split(&res_hs, &res_cs), "failed to split responder: %v") {
+	if !testing.expectf(t, .Ok == noise.handshake_split(&res_hs, &res_cs), "failed to split responder") {
 		return false
 	}
 
@@ -231,7 +231,7 @@ test_messages :: proc(t: ^testing.T, ini_cs, res_cs: ^noise.Cipher_States, is_on
 			return false
 		}
 
-		if !testing.expectf(t, bytes.equal(rx_dst, payload), "i->r %d: payload mismatch") {
+		if !testing.expectf(t, bytes.equal(rx_dst, payload), "i->r %d: payload mismatch", i) {
 			return false
 		}
 
@@ -261,7 +261,7 @@ test_messages :: proc(t: ^testing.T, ini_cs, res_cs: ^noise.Cipher_States, is_on
 			return false
 		}
 
-		if !testing.expectf(t, bytes.equal(rx_dst, payload), "r-i %d: payload mismatch") {
+		if !testing.expectf(t, bytes.equal(rx_dst, payload), "r-i %d: payload mismatch", i) {
 			return false
 		}
 	}
