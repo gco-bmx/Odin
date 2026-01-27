@@ -507,6 +507,8 @@ gb_internal LLVMMetadataRef lb_debug_union(lbModule *m, Type *type, String name,
 
 	LLVMMetadataRef *elements = gb_alloc_array(temporary_allocator(), LLVMMetadataRef, element_count);
 
+	Type * tag_enum = union_tag_type_as_enum(bt);
+
 	if (index_offset > 0) {
 		Type *tag_type = union_tag_type(bt);
 		u64 offset_in_bits = 8*cast(u64)bt->Union.variant_block_size;
@@ -517,16 +519,15 @@ gb_internal LLVMMetadataRef lb_debug_union(lbModule *m, Type *type, String name,
 			file, line,
 			8*cast(u64)type_size_of(tag_type), 8*cast(u32)type_align_of(tag_type),
 			offset_in_bits,
-			LLVMDIFlagZero, lb_debug_type(m, tag_type)
+			LLVMDIFlagZero, lb_debug_type(m, tag_enum)
 		);
 	}
 
 	for_array(j, bt->Union.variants) {
 		Type *variant = bt->Union.variants[j];
 
-		char name[32] = {};
-		gb_snprintf(name, gb_size_of(name), "v%td", variant_offset+j);
-		isize name_len = gb_strlen(name);
+		char *name = (char*)tag_enum->Enum.fields[variant_offset+j]->token.string.text;
+		isize name_len =  tag_enum->Enum.fields[variant_offset+j]->token.string.len;
 
 		elements[index_offset+j] = LLVMDIBuilderCreateMemberType(
 			m->debug_builder, member_scope,
