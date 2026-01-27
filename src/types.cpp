@@ -171,6 +171,7 @@ struct TypeStruct {
 
 struct TypeUnion {
 	Slice<Type *>    variants;
+	Type *           tag_as_enum; //hack for debugability
 
 	Ast *            node;
 	Scope *          scope;
@@ -3634,6 +3635,14 @@ gb_internal bool type_conversion_is_variant(Type *dst, Type *src) {
 	}
 	return false;
 }
+
+gb_internal Type *union_tag_type_as_enum(Type *u) {
+	u = base_type(u);
+	GB_ASSERT(u->kind == Type_Union);
+	u->Union.tag_as_enum->Enum.base_type = union_tag_type(u); //HACK...nasty
+	return u->Union.tag_as_enum;
+}
+
 
 gb_internal int matched_target_features(TypeProc *t) {
 	if (t->require_target_feature.len == 0) {

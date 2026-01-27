@@ -877,6 +877,48 @@ gb_internal void check_union_type(CheckerContext *ctx, Type *union_type, Ast *no
 			}
 		}
 	}
+
+
+	//TEMP HACK to make union tag look like an enum for debugging
+	Type* tag_as_enum = alloc_type_enum();
+	tag_as_enum->Enum.base_type = t_int; //NOTE(gco) size gets corrected in a later stage as workaround!
+	tag_as_enum->Enum.scope = ctx->scope;
+
+	auto fields = array_make<Entity *>(permanent_allocator(), 0, variants.count);
+	ExactValue iota = exact_value_i64(0);
+	if(ut->kind != UnionType_no_nil){
+		Entity *e = alloc_entity_constant(ctx->scope, make_token_ident("v0_nil"), nullptr, iota);
+		e->identifier = nullptr;
+		e->flags |= EntityFlag_Visited;
+		e->state = EntityState_Resolved;
+
+		array_add(&fields, e);
+		iota = exact_binary_operator_value(Token_Add, iota, exact_value_i64(1));
+	}
+
+	for_array(i, ut->variants) {
+		Ast *node = ut->variants[i];
+		gbString type_str = expr_to_string(node, temporary_allocator());
+		gbString type_name = gb_string_make_reserve(heap_allocator(), 64);
+		type_name = gb_string_append_fmt(type_name, "v%td_%s", exact_value_to_i64(iota), type_str);
+		Entity *e = alloc_entity_constant(ctx->scope, make_token_ident(type_name), nullptr, iota);
+		e->identifier = nullptr;
+		e->flags |= EntityFlag_Visited;
+		e->state = EntityState_Resolved;
+		e->Constant.flags |= EntityConstantFlag_ImplicitEnumValue;
+
+		array_add(&fields, e);
+
+		iota = exact_binary_operator_value(Token_Add, iota, exact_value_i64(1));
+	}
+	tag_as_enum->Enum.fields = fields;
+	*tag_as_enum->Enum.min_value = exact_value_i64(0);
+	*tag_as_enum->Enum.max_value = iota;
+	tag_as_enum->Enum.min_value_index = 0;
+	tag_as_enum->Enum.max_value_index = fields.count-1;
+
+	union_type->Union.tag_as_enum = tag_as_enum;
+	
 }
 
 gb_internal void check_enum_type(CheckerContext *ctx, Type *enum_type, Type *named_type, Ast *node) {
